@@ -1,5 +1,8 @@
 # Convlutional Generative Adversarial Network (ConvGAN)
 
+This repository implements the cnn-based gan including DCGAN, WGAN, and WGAN-GP.
+Besides, I use the FID score and MMD metric to measure the quality of these generated data.
+
 ## 1. Runtime Environment
 ```
 python              3.8
@@ -15,6 +18,8 @@ torchinfo           1.8.0
 torchvision         0.13.0+cu113
 tqdm                4.67.1
 ```
+The EasyLossUtil used in this repository is a tool for managing these loss values. 
+It's a simple library implemented by me and it's lighter and more convinent to use than tensorboard and other tools.
 
 ## 2. Contents
 ### 2.1 DCGAN
@@ -48,3 +53,8 @@ Each epoch costs about 45 second.
 <img src="results/fid_score.png" width="200" height="100">
 <img src="results/loss_g.png" width="200" height="100">
 <img src="results/loss_d.png" width="200" height="100">
+
+# References
+- DCGAN: Radford, A. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. arXiv preprint arXiv:1511.06434.
+- WGAN: Arjovsky, M., Chintala, S., & Bottou, L. (2017, July). Wasserstein generative adversarial networks. In International conference on machine learning (pp. 214-223). PMLR.
+- WGAN-GP: Gulrajani, I., Ahmed, F., Arjovsky, M., Dumoulin, V., & Courville, A. C. (2017). Improved training of wasserstein gans. Advances in neural information processing systems, 30.
