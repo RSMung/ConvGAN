@@ -58,9 +58,9 @@ The second row is the real images.
 
 Fid score, generator loss, and discriminator loss:
 
-<img src="results/fid_score.png" width="200" height="100">
-<img src="results/loss_g.png" width="200" height="100">
-<img src="results/loss_d.png" width="200" height="100">
+<img src="results/fid_score.png" width="400">
+<img src="results/loss_g.png" width="400">
+<img src="results/loss_d.png" width="400">
 
 # References
 - DCGAN: Radford, A. (2015). Unsupervised representation learning with deep convolutional generative adversarial networks. arXiv preprint arXiv:1511.06434.
