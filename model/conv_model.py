@@ -2,9 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as vmodels
-import sys
-sys.path.append("../../")
-from workbench_utils import init_weights
 
 
 # class ResidualBlock(nn.Module):

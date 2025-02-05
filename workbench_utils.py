@@ -64,7 +64,7 @@ def normalize(x, dataset_name, norm_type="n1"):
 
 
 
-def denormalize(x, dataset_name, norm_type="n1"):
+def denormalize(x, norm_type="n1"):
     """
     inverse operation for transforms.Normalize
     it's useful when we need to visualize image data that have been normalized

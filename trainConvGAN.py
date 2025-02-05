@@ -6,9 +6,9 @@ from EasyLossUtil.global_utils import ParamsParent, checkDir, formatSeconds
 from EasyLossUtil.saveTensor2Img import save_image
 from EasyLossUtil.easyLossUtil import EasyLossUtil
 from EasyLossUtil.quickAverageMethod import QuickAverageMethod
+from get_dataloader import getDataloader
 from get_fid_score import get_fid_score
 from model.conv_model import ConvDiscriminator, ConvGenerator
-from load_data.getDataloader import get_dataloader
 
 from workbench_utils import denormalize, prepareEnv, get_rootdir_path
 import os
@@ -50,27 +50,23 @@ def build_src_ckp_path(ckp_time_stamp, dataset_name):
 
 
 class TrainConvGanParams(ParamsParent):
-    dataset_name = "Polyupalm_Blue"
-    # dataset_name = "Polyupalm_Green"
-    # dataset_name = "Polyupalm_Red"
-    # dataset_name = "Polyupalm_NIR"
+    dataset_name = "mnist"
 
     # img_size = 224
     img_size = 64
     in_c = 3
-    norm_type="n2"  # using 0.5 as the mean and std 
+    norm_type="n2"
 
-    # gpu_id = 2
-    gpu_id = 3
+    batch_size = 128
     # batch_size = 64
     # batch_size = 48
-    batch_size = 32
+    # batch_size = 32
     # batch_size = 24
     # batch_size = 16
     g_lr = 1e-6
-    # d_lr = 1e-6
+    d_lr = 1e-6
     # g_lr = 1e-5
-    d_lr = 1e-5
+    # d_lr = 1e-5
     latent_dim = 256
     # total_epochs = 8000
     # total_epochs = 500
@@ -84,21 +80,20 @@ class TrainConvGanParams(ParamsParent):
     fid_score_sampleNum = batch_size * 10
 
     # 是否使用进度条
-    # use_tqdm = False
-    use_tqdm = True
+    use_tqdm = False
+    # use_tqdm = True
     # 是否快速调试
     quick_debug = False
     # quick_debug = True
 
-    # ckp_time_stamp = "2023-07-21_16-42"   # 实验二十四  mcs3
-    ckp_time_stamp = "2023-07-31_09-46"   # 实验三十一  mcs3
+    ckp_time_stamp = "test"   # 实验 test
     g_ckp_path, d_ckp_path, sample_root_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
         dataset_name
     )
 
-    # nohup python -u main.py > ./ConvGAN/log/2023-07-21_16-42.txt 2>&1 &
-    # 
+    # nohup python -u main.py > ./log/test.txt 2>&1 &
+    # 883296
 
 
 # the function for initializing model
@@ -118,7 +113,7 @@ def get_generator(latent_dim, dataset_name, ckp_time_stamp=None):
         g = init_model(g)
     else:
         ckp_path = os.path.join(
-            get_rootdir_path, "ConvGAN", "ckp",
+            get_rootdir_path, "ckp",
             ckp_time_stamp,
             "g_" + dataset_name + "_" + ckp_time_stamp
         )
@@ -132,7 +127,7 @@ def get_discriminator(dataset_name, ckp_time_stamp=None):
         d = init_model(d)
     else:
         ckp_path = os.path.join(
-            get_rootdir_path, "ConvGAN", "ckp",
+            get_rootdir_path, "ckp",
             ckp_time_stamp,
             "d_" + dataset_name + "_" + ckp_time_stamp
         )
@@ -238,7 +233,7 @@ def train_procedure(
     # )
     lr_scheduler_g = optim.lr_scheduler.StepLR(optim_g, step_size=10, gamma=0.99)
     lr_scheduler_d = optim.lr_scheduler.StepLR(optim_d, step_size=10, gamma=0.99)
-    # bce_criterion = nn.BCELoss()
+    bce_criterion = nn.BCELoss()
     # ------------------------------------------
     # -- setup loss util
     # ------------------------------------------
@@ -275,9 +270,9 @@ def train_procedure(
             # generate noise from Gaussian distribution
             z = torch.randn((imgs.size(0), params.latent_dim)).cuda()
 
-            # # valid and fake flags for training
-            # valid_flags = torch.ones((imgs.size(0), 1), requires_grad=False).cuda()
-            # fake_flags = torch.zeros((imgs.size(0), 1), requires_grad=False).cuda()
+            # valid and fake flags for training
+            valid_flags = torch.ones((imgs.size(0), 1), requires_grad=False).cuda()
+            fake_flags = torch.zeros((imgs.size(0), 1), requires_grad=False).cuda()
 
             # ---------------------
             # --- train d
@@ -290,19 +285,19 @@ def train_procedure(
             # compute loss
 
             # -- dcgan loss
-            # # d should successfully output valid for the real imgs as much as it can
-            # loss_d_real = bce_criterion(discriminator(imgs), valid_flags)
-            # # d should successfully output fake for the fake imgs as much as it can
-            # loss_d_fake = bce_criterion(discriminator(fake_imgs), fake_flags)
-            # # sum
-            # loss_d = (loss_d_real + loss_d_fake) / 2
+            # d should successfully output valid for the real imgs as much as it can
+            loss_d_real = bce_criterion(discriminator(imgs), valid_flags)
+            # d should successfully output fake for the fake imgs as much as it can
+            loss_d_fake = bce_criterion(discriminator(fake_imgs), fake_flags)
+            # sum
+            loss_d = (loss_d_real + loss_d_fake) / 2
 
             # # -- wgan loss
             # loss_d = -torch.mean(discriminator(imgs)) + torch.mean(discriminator(fake_imgs))
 
-            # -- wgan gp loss
-            loss_gp = compute_gradient_penalty(discriminator, imgs, fake_imgs)
-            loss_d = -torch.mean(discriminator(imgs)) + torch.mean(discriminator(fake_imgs)) + loss_gp
+            # # -- wgan gp loss
+            # loss_gp = compute_gradient_penalty(discriminator, imgs, fake_imgs)
+            # loss_d = -torch.mean(discriminator(imgs)) + torch.mean(discriminator(fake_imgs)) + loss_gp
 
             # optimize
             optim_d.zero_grad()
@@ -331,12 +326,16 @@ def train_procedure(
                 discriminator.eval()
                 # generator inference
                 fake_imgs = generator(z)
+
                 # compute loss
+
                 # -- dcgan loss
-                # # g should try to get valid falgs from discriminator from as much as possible
-                # loss_g = bce_criterion(discriminator(fake_imgs), valid_flags)
-                # -- wgan loss
-                loss_g = -torch.mean(discriminator(fake_imgs))
+                # g should try to get valid falgs from discriminator from as much as possible
+                loss_g = bce_criterion(discriminator(fake_imgs), valid_flags)
+
+                # # -- wgan loss
+                # loss_g = -torch.mean(discriminator(fake_imgs))
+
                 # optimize
                 optim_g.zero_grad()
                 loss_g.backward()
@@ -350,7 +349,7 @@ def train_procedure(
             # ---------------------
             # --- log on progress bar
             # ---------------------
-            if train_g_flag == 1:
+            if train_g_flag == 1 and params.use_tqdm:
                 iter_object.set_postfix_str(f"loss_g:{loss_g:.4f}, loss_d:{loss_d:.4f}")
         # end one epoch
         # ---------------------
@@ -410,7 +409,9 @@ def train_procedure(
             generator.eval()
             # inference
             fake_imgs = generator(fixed_noises)
-            fake_imgs = denormalize(fake_imgs, dataset_name=params.dataset_name, norm_type=params.norm_type)
+            fake_imgs = denormalize(
+                fake_imgs, norm_type=params.norm_type
+            )
             # concat the real images
             vis_images = torch.cat((fake_imgs, fixed_real_vis_imgs), dim=0)
             # visualizing
@@ -418,7 +419,7 @@ def train_procedure(
             save_image(
                 vis_images,
                 os.path.join(params.sample_root_path, f"sample_{epoch}.{postfix}"),
-                nrow=2, padding=5
+                nrow=4, padding=5
             )
         # end generate samples
         # end time for this epoch
@@ -435,8 +436,6 @@ def trainConvGanMain():
     # ------------------------------
     # -- init the env
     # ------------------------------
-    if TrainConvGanParams.gpu_id != 0:
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainConvGanParams.gpu_id)
     prepareEnv()
     # ------------------------------
     # -- init convgan train params
@@ -447,13 +446,11 @@ def trainConvGanMain():
     # -- load data
     # ------------------------------
     print("=== load data ===")
-    # use all trianing data (including the 2500 training and 500 val data, 3000 in total)
-    train_dataloader = get_dataloader(
+    train_dataloader = getDataloader(
         params.dataset_name, 
         phase="train", 
         img_size=params.img_size, 
         batch_size=params.batch_size,
-        proportion="p4",   # p4 is 6:0:6, p3 is 5:1:6 (default)
         norm_type=params.norm_type
     )
     # generate fixed noise for visualizing the training result
@@ -467,7 +464,11 @@ def trainConvGanMain():
         else:
             fixed_fid_score_imgs = torch.cat((fixed_fid_score_imgs, current_imgs), dim=0)
     # prepare the fixed imgs for visulizing
-    fixed_real_vis_imgs = denormalize(fixed_fid_score_imgs[0:params.visualizing_sample_num], dataset_name=params.dataset_name, norm_type=params.norm_type).cuda()
+    fixed_real_vis_imgs = denormalize(
+        fixed_fid_score_imgs[0:params.visualizing_sample_num], 
+        norm_type=params.norm_type
+    ).cuda()
+
     # ------------------------------
     # -- get generator and discriminator
     # ------------------------------

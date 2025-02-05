@@ -8,7 +8,7 @@ import numpy as np
 from scipy.linalg import sqrtm
 
 # from inception import InceptionV3
-from torchvision.models import inception_v3
+from torchvision.models import inception_v3, Inception_V3_Weights
 
 """
 https://github.com/mseitzer/pytorch-fid/blob/master/src/pytorch_fid/fid_score.py
@@ -23,7 +23,11 @@ def get_fid_score(realData, generatedData, device):
     :return: fid_score
     """
     # 1. 加载预训练的Inception v3模型
-    model = inception_v3(pretrained=True, transform_input=False, aux_logits=False).to(device)
+    # model = inception_v3(pretrained=True, transform_input=False, aux_logits=False).to(device)
+    model = inception_v3(
+        weights=Inception_V3_Weights.IMAGENET1K_V1, 
+        transform_input=False
+    ).to(device)
     # 因为只用来提取特征, 因此去除最后的dropout和fc
     model.dropout = nn.Identity()
     model.fc = nn.Identity()
