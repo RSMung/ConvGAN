@@ -49,7 +49,15 @@ latent_dim: 256
 The GPU is RTX 3090.
 Each epoch costs about 45 second.
 
+Generated samples:
+
+The first row is the generated samples.
+The second row is the real images.
+
 <img src="results/sample_1849.png" width="200" height="100">
+
+Fid score, generator loss, and discriminator loss:
+
 <img src="results/fid_score.png" width="200" height="100">
 <img src="results/loss_g.png" width="200" height="100">
 <img src="results/loss_d.png" width="200" height="100">
